@@ -20,18 +20,22 @@ import {
   Text,
   View,
   StatusBar,
+  Alert,
 } from 'react-native';
 import {
   createConfig,
   signIn,
   signOut,
   getAccessToken,
+  refreshTokens,
   isAuthenticated,
   getUser,
   getUserFromIdToken,
   EventEmitter,
 } from '@okta/okta-react-native';
 import configFile from './samples.config';
+import ReactNativeBiometrics from 'react-native-biometrics'
+import TouchID from 'react-native-touch-id';
 
 export default class App extends React.Component {
   constructor() {
@@ -87,18 +91,68 @@ export default class App extends React.Component {
   }
 
   async checkAuthentication() {
-    const result = await isAuthenticated();
-    if (result.authenticated !== this.state.authenticated) {
-      this.setState({authenticated: result.authenticated});
-    }
+    return this.state.authenticated
   }
 
   async login() {
     signIn();
   }
 
+    async bioMetric() {
+      var that = this
+      TouchID.authenticate('to demo this react-native component')
+      .then(async (success) => {
+        // Success code
+        console.log(success)
+        var tokens = await refreshTokens();
+        if(tokens["access_token"]){
+          that.setState({authenticated: true});
+          Alert.alert(
+            'Success',
+            tokens["access_token"],
+            [
+              {
+                text: 'Ask me later',
+                onPress: () => console.log('Ask me later pressed')
+              },
+              {
+                text: 'Cancel',
+                onPress: () => console.log('Cancel Pressed'),
+                style: 'cancel'
+              },
+              { text: 'OK', onPress: () => console.log('OK Pressed') }
+            ],
+            { cancelable: false }
+          );
+        }
+
+      })
+      .catch(error => {
+        console.log(error)
+        Alert.alert(
+          'Error',
+          error.message,
+          [
+            {
+              text: 'Ask me later',
+              onPress: () => console.log('Ask me later pressed')
+            },
+            {
+              text: 'Cancel',
+              onPress: () => console.log('Cancel Pressed'),
+              style: 'cancel'
+            },
+            { text: 'OK', onPress: () => console.log('OK Pressed') }
+          ],
+          { cancelable: false }
+        );
+        // Failure code
+      });
+    }
+
   async logout() {
-    signOut();
+    //signOut
+    this.setState({authenticated: false});
   }
 
   async getUserIdToken() {
@@ -228,6 +282,14 @@ export default class App extends React.Component {
                   title="Login"
                 />
               )}
+              <Button
+                  style={styles.button}
+                  testID="bioMetric"
+                  onPress={async () => {
+                    this.bioMetric();
+                  }}
+                  title="Biometric"
+                />
             </View>
           </View>
           {this.renderButtons()}
